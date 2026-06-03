@@ -2,9 +2,14 @@ import parse_data
 import glouton
 import random_prunning
 import solver
+import sys
 
-def main():
-    data = parse_data.parse_sensor_data('test_5.txt')
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: python main.py <nom_fichier>")
+        sys.exit(1)
+        
+    data = parse_data.parse_sensor_data(sys.argv[1])
 
     # Recherche gloutonne
     configuration = glouton.get_greedy_configuration(data["num_zones"], data["sensors"])
@@ -21,7 +26,3 @@ def main():
     print(f"Planning d'activation : {results['schedule']}")
         
     print(best_random_config)
-
-
-if __name__ == "__main__":
-    main()
