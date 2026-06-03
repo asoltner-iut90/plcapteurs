@@ -1,0 +1,6 @@
+prof :
+1 => 8.5     (opti)
+2 => 104     (opti)
+3 => 395     (opti?)
+4 => 1772    (max atteint)
+5 => 13 645  (max atteint)
