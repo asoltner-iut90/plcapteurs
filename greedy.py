@@ -1,0 +1,77 @@
+import random
+from heuristic import Heuristic
+
+class Greedy(Heuristic):
+    def prune(self, num_zones: int, sensors: dict, selected: list) -> list:
+        """Élimine les capteurs redondants pour minimiser la configuration."""
+        all_zones = set(range(1, num_zones + 1))
+        for s_id in list(selected):
+            current_coverage = set()
+            for other_id in selected:
+                if other_id != s_id:
+                    current_coverage.update(sensors[other_id])
+            if current_coverage == all_zones:
+                selected.remove(s_id)
+        return sorted(selected)
+
+    def solve(self, parsed_data: dict) -> list[list[int]]:
+        num_zones = parsed_data["num_zones"]
+        sensors = parsed_data["sensors"]
+        
+        uncovered = set(range(1, num_zones + 1))
+        selected = []
+        
+        while uncovered:
+            best_sensor = None
+            max_coverage = -1
+            
+            for s_id, zones in sensors.items():
+                if s_id in selected:
+                    continue
+                coverage = len(set(zones) & uncovered)
+                if coverage > max_coverage:
+                    max_coverage = coverage
+                    best_sensor = s_id
+                    
+            if max_coverage <= 0:
+                return []
+                
+            selected.append(best_sensor)
+            uncovered -= set(sensors[best_sensor])
+            
+        config = self.prune(num_zones, sensors, selected)
+        return [config] if config else []
+
+
+class RandomPruning(Greedy):
+    def __init__(self, iterations: int = 1000):
+        self.iterations = iterations
+
+    def _get_random_configuration(self, num_zones: int, sensors: dict) -> list:
+        sensor_ids = list(sensors.keys())
+        random.shuffle(sensor_ids)
+        
+        selected = []
+        uncovered = set(range(1, num_zones + 1))
+        
+        for s_id in sensor_ids:
+            if not uncovered:
+                break
+            selected.append(s_id)
+            uncovered -= set(sensors[s_id])
+            
+        if uncovered:
+            return []
+            
+        return self.prune(num_zones, sensors, selected)
+
+    def solve(self, parsed_data: dict) -> list[list[int]]:
+        num_zones = parsed_data["num_zones"]
+        sensors = parsed_data["sensors"]
+        
+        unique_configs = set()
+        for _ in range(self.iterations):
+            config = self._get_random_configuration(num_zones, sensors)
+            if config:
+                unique_configs.add(tuple(config))
+        return [list(c) for c in unique_configs]
