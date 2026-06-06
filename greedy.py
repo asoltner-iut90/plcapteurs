@@ -75,3 +75,4 @@ class RandomPruning(Greedy):
             if config:
                 unique_configs.add(tuple(config))
         return [list(c) for c in unique_configs]
+        
