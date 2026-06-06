@@ -76,3 +76,6 @@ class RandomPruning(Greedy):
                 unique_configs.add(tuple(config))
         return [list(c) for c in unique_configs]
         
+if __name__ == "__main__":
+    from tester import Tester
+    Tester(RandomPruning(iterations=10000)).execute_all_tests()

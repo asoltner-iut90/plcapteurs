@@ -1,5 +1,4 @@
 def parse_sensor_data(file_path: str) -> dict:
-    print(f"Parsing data from {file_path}...")
     with open(file_path, 'r') as file:
         lines = [line.strip() for line in file if line.strip()]
     
