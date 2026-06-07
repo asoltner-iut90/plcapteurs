@@ -53,7 +53,7 @@ class Tester:
             expected, diff_str = self._get_expected_and_diff(obtained, out_file)
             expected_val = expected if expected is not None else "N/A"
 
-            print(f"Terminé en {elapsed:.2f}s | Obtenu: {obtained:2f} (Attendu: {expected_val}) | Différence: {diff_str}")
+            print(f"Terminé en {elapsed:.2f}s | Obtenu: {obtained:.3f} (Attendu: {expected_val:.3f}) | Différence: {diff_str}")
 
             if self.verbose:
                 print("Ordonnancement choisi par le solveur :")
