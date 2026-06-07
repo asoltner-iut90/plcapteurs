@@ -19,7 +19,7 @@ def solve_sensor_scheduling(lifetimes: list, sensors: dict, configurations: list
         if active_in_configs:
             prob += pulp.lpSum(active_in_configs) <= lifetimes[sensor_id - 1]
             
-    prob.solve(pulp.GLPK_CMD(msg=False))
+    prob.solve(pulp.PULP_CBC_CMD(msg=False))
     
     return {
         "status": pulp.LpStatus[prob.status],

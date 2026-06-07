@@ -78,4 +78,4 @@ class RandomPruning(Greedy):
         
 if __name__ == "__main__":
     from tester import Tester
-    Tester(RandomPruning(iterations=10000)).execute_all_tests()
+    Tester(RandomPruning(iterations=100000)).execute_all_tests()
