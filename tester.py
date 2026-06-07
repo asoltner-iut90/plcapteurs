@@ -3,6 +3,7 @@ import parse_data
 import solver
 import os
 import time
+import subprocess
 import datetime
 
 
@@ -27,12 +28,40 @@ class Tester:
             
         self.log_filename = filename
         
+        # Obtenir les paramètres de l'heuristique
+        params_str = ", ".join(f"{k}={v}" for k, v in self.heuristic.__dict__.items())
+        if not params_str:
+            params_str = "Aucun (valeurs par défaut ou pas de paramètres d'instance)"
+            
+        # Obtenir le hash git
+        git_hash = self._get_git_hash()
+        
         # Écriture de l'en-tête du fichier log
         with open(self.log_filename, "w", encoding="utf-8") as f:
             f.write(f"=== Rapport d'exécution ===\n")
             f.write(f"Heuristique : {heuristic_name}\n")
+            f.write(f"Paramètres  : {params_str}\n")
+            f.write(f"Commit Git  : {git_hash}\n")
             f.write(f"Date/Heure  : {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
             f.write(f"===========================\n\n")
+
+    def _get_git_hash(self) -> str:
+        try:
+            git_hash = subprocess.check_output(
+                ["git", "rev-parse", "--short", "HEAD"],
+                stderr=subprocess.DEVNULL
+            ).decode().strip()
+            
+            status = subprocess.check_output(
+                ["git", "status", "--porcelain"],
+                stderr=subprocess.DEVNULL
+            ).decode().strip()
+            
+            if status:
+                git_hash += " (dirty)"
+            return git_hash
+        except Exception:
+            return "N/A (Git non initialisé ou non installé)"
 
     def _log(self, message: str):
         with open(self.log_filename, "a", encoding="utf-8") as f:
