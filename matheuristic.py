@@ -97,4 +97,4 @@ class Matheuristic(Heuristic):
 
 if __name__ == "__main__":
     from tester import Tester
-    Tester(Matheuristic(500, 10)).execute_all_tests()
+    Tester(Matheuristic(500, 50)).execute_all_tests()
