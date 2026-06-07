@@ -3,12 +3,40 @@ import parse_data
 import solver
 import os
 import time
+import datetime
 
 
 class Tester:
     def __init__(self, heuristic: Heuristic, verbose=False):
         self.verbose = verbose
         self.heuristic = heuristic
+
+        # Configuration de l'enregistrement des logs
+        self.log_dir = "logs"
+        os.makedirs(self.log_dir, exist_ok=True)
+        
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        heuristic_name = self.heuristic.__class__.__name__
+        base_name = f"{heuristic_name}_{timestamp}"
+        
+        filename = os.path.join(self.log_dir, f"{base_name}.log")
+        counter = 1
+        while os.path.exists(filename):
+            filename = os.path.join(self.log_dir, f"{base_name}_{counter}.log")
+            counter += 1
+            
+        self.log_filename = filename
+        
+        # Écriture de l'en-tête du fichier log
+        with open(self.log_filename, "w", encoding="utf-8") as f:
+            f.write(f"=== Rapport d'exécution ===\n")
+            f.write(f"Heuristique : {heuristic_name}\n")
+            f.write(f"Date/Heure  : {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"===========================\n\n")
+
+    def _log(self, message: str):
+        with open(self.log_filename, "a", encoding="utf-8") as f:
+            f.write(message + "\n")
 
     def _run_solver(self, file_path: str) -> dict:
         data = parse_data.parse_sensor_data(file_path)
@@ -42,7 +70,10 @@ class Tester:
     def execute_test(self, n: int):
         file_path = f"tests/{n:02d}.in"
         out_file = file_path.rsplit('.', 1)[0] + ".out"
-        print(f"Exécution du test : {file_path}")
+        
+        msg_start = f"Exécution du test : {file_path}"
+        print(msg_start)
+        self._log(msg_start)
 
         start_time = time.time()
         try:
@@ -53,22 +84,39 @@ class Tester:
             expected, diff_str = self._get_expected_and_diff(obtained, out_file)
             expected_val = expected if expected is not None else "N/A"
 
-            print(f"Terminé en {elapsed:.2f}s | Obtenu: {obtained:.3f} (Attendu: {expected_val:.3f}) | Différence: {diff_str}")
+            obtained_str = f"{obtained:.3f}" if isinstance(obtained, (int, float)) else str(obtained)
+            expected_str = f"{expected_val:.3f}" if isinstance(expected_val, (int, float)) else str(expected_val)
+            
+            msg_result = f"Terminé en {elapsed:.2f}s | Obtenu: {obtained_str} (Attendu: {expected_str}) | Différence: {diff_str}"
+            print(msg_result)
+            self._log(msg_result)
 
+            # Préparation de l'ordonnancement complet pour le fichier log (et optionnellement la console)
+            schedule_lines = ["Ordonnancement choisi par le solveur :"]
+            has_active_config = False
+            for config, duration in res["schedule"].items():
+                if duration and duration > 1e-5:
+                    schedule_lines.append(f"  - Capteurs {list(config)} activés pendant {duration:.2f} unités de temps")
+                    has_active_config = True
+
+            if not has_active_config:
+                schedule_lines.append("  - Aucune configuration active trouvée.")
+            
+            schedule_text = "\n".join(schedule_lines)
+            
+            # Affichage console si verbose=True
             if self.verbose:
-                print("Ordonnancement choisi par le solveur :")
-                has_active_config = False
-                for config, duration in res["schedule"].items():
-                    if duration and duration > 1e-5:
-                        print(f"  - Capteurs {list(config)} activés pendant {duration:.2f} unités de temps")
-                        has_active_config = True
-
-                if not has_active_config:
-                    print("  - Aucune configuration active trouvée.")
-            print()
+                print(schedule_text)
+                print()
+            
+            # Écriture systématique dans le log
+            self._log(schedule_text)
+            self._log("") # Ligne vide pour aérer
 
         except Exception as e:
-            print(f"Erreur lors de l'exécution de {file_path} : {e}\n")
+            err_msg = f"Erreur lors de l'exécution de {file_path} : {e}"
+            print(err_msg + "\n")
+            self._log(err_msg + "\n")
 
     def execute_all_tests(self):
         for i in range(1, 6):
