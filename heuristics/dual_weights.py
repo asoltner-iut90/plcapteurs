@@ -84,5 +84,8 @@ class DualWeightsHeuristic(Heuristic):
 
 
 if __name__ == "__main__":
+    import sys
+    import os
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
     from tester import Tester
     Tester(DualWeightsHeuristic(iterations=10000, beta=1.2)).execute_all_tests()

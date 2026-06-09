@@ -1,6 +1,11 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import random
 from heuristic import Heuristic
 import solver
+
 
 class Matheuristic(Heuristic):
     def __init__(self, initial_iterations=500, neighborhood_samples=5):

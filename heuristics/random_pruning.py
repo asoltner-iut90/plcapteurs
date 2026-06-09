@@ -77,5 +77,8 @@ class RandomPruning(Greedy):
         return [list(c) for c in unique_configs]
         
 if __name__ == "__main__":
+    import sys
+    import os
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
     from tester import Tester
-    Tester(RandomPruning(iterations=100000)).execute_all_tests()
+    Tester(RandomPruning(iterations=100_000)).execute_all_tests()

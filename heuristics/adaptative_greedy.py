@@ -66,5 +66,8 @@ class AdaptiveGreedy(Heuristic):
         return [[i + 1 for i, val in enumerate(c) if val == 1] for c in pool]
 
 if __name__ == "__main__":
+    import sys
+    import os
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
     from tester import Tester
     Tester(AdaptiveGreedy(iterations=10000)).execute_all_tests()

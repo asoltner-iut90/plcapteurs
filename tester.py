@@ -1,4 +1,4 @@
-from heuristic import Heuristic
+from heuristics.heuristic import Heuristic
 import parse_data
 import solver
 import os

@@ -115,5 +115,8 @@ class SimulatedAnnealing(Heuristic):
 
 
 if __name__ == "__main__":
+    import sys
+    import os
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
     from tester import Tester
     Tester(SimulatedAnnealing(initial_temp=500.0, cooling_rate=0.999, iterations=500000)).execute_all_tests()
