@@ -8,7 +8,7 @@ import solver
 
 
 class Matheuristic(Heuristic):
-    def __init__(self, initial_iterations=500, neighborhood_samples=5):
+    def __init__(self, initial_iterations=10_000, neighborhood_samples=50):
         self.initial_iterations = initial_iterations
         self.neighborhood_samples = neighborhood_samples
 
@@ -75,31 +75,40 @@ class Matheuristic(Heuristic):
                     neighbors.append(tuple(pruned))
         return neighbors
 
-    def solve(self, parsed_data: dict) -> list[list[int]]:
+    def solve(self, parsed_data: dict) -> None:
         num_zones = parsed_data["num_zones"]
         sensors = parsed_data["sensors"]
         lifetimes = parsed_data["lifetimes"]
         
-        pool = set()
+        self.current_pool = []
+        pool_set = set()
         for _ in range(self.initial_iterations):
             config = self._generate_base_config(num_zones, sensors)
             if config:
-                pool.add(tuple(config))
+                t_cfg = tuple(config)
+                if t_cfg not in pool_set:
+                    pool_set.add(t_cfg)
+                    self.current_pool.append(config)
                 
-        results = solver.solve_sensor_scheduling(lifetimes, sensors, [list(c) for c in pool])
+        if not self.current_pool:
+            return
+            
+        results = solver.solve_sensor_scheduling(lifetimes, sensors, self.current_pool)
         
         active_configs = []
         for config_tuple, duration in results["schedule"].items():
             if duration and duration > 1e-5:
                 active_configs.append(config_tuple)
                 
-        enriched_pool = set(pool)
         for config in active_configs:
             neighbors = self._get_neighborhood(config, parsed_data)
-            enriched_pool.update(neighbors)
+            for n_cfg in neighbors:
+                if n_cfg not in pool_set:
+                    pool_set.add(n_cfg)
+                    self.current_pool.append(list(n_cfg))
             
-        return [list(c) for c in enriched_pool]
+        return
 
 if __name__ == "__main__":
     from tester import Tester
-    Tester(Matheuristic(500, 50)).execute_all_tests()
+    Tester(Matheuristic(1000, 50)).execute_all_tests()

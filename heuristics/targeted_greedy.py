@@ -28,7 +28,8 @@ class TargetedGreedy(Heuristic):
             for z in zones:
                 zone_to_sensors[z].append(s_id)
 
-        pool = set()
+        self.current_pool = []
+        pool_set = set()
 
         for _ in range(self.iterations):
             uncovered = set(range(1, num_zones + 1))
@@ -54,9 +55,12 @@ class TargetedGreedy(Heuristic):
                 uncovered -= set(sensors[chosen])
 
             final_config = self._prune(num_zones, sensors, selected)
-            pool.add(tuple(final_config))
+            t_cfg = tuple(final_config)
+            if t_cfg not in pool_set:
+                pool_set.add(t_cfg)
+                self.current_pool.append(final_config)
 
-        return [list(c) for c in pool]
+        return self.current_pool
 
 if __name__ == "__main__":
     import sys

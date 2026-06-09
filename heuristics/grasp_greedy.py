@@ -23,7 +23,8 @@ class GraspGreedy(Heuristic):
         sensors = parsed_data["sensors"]
         
         sensor_sets = {s: set(z) for s, z in sensors.items()}
-        pool = set()
+        self.current_pool = []
+        pool_set = set()
         
         for _ in range(self.iterations):
             uncovered = set(range(1, num_zones + 1))
@@ -50,9 +51,12 @@ class GraspGreedy(Heuristic):
                 uncovered -= sensor_sets[chosen]
                 
             final_config = self._prune(num_zones, sensor_sets, list(selected))
-            pool.add(tuple(final_config))
+            t_cfg = tuple(final_config)
+            if t_cfg not in pool_set:
+                pool_set.add(t_cfg)
+                self.current_pool.append(final_config)
             
-        return [list(c) for c in pool]
+        return self.current_pool
 
 if __name__ == "__main__":
     import sys

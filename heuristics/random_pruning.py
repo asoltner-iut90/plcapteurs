@@ -14,10 +14,11 @@ class Greedy(Heuristic):
                 selected.remove(s_id)
         return sorted(selected)
 
-    def solve(self, parsed_data: dict) -> list[list[int]]:
+    def solve(self, parsed_data: dict) -> None:
         num_zones = parsed_data["num_zones"]
         sensors = parsed_data["sensors"]
         
+        self.current_pool = []
         uncovered = set(range(1, num_zones + 1))
         selected = []
         
@@ -34,17 +35,19 @@ class Greedy(Heuristic):
                     best_sensor = s_id
                     
             if max_coverage <= 0:
-                return []
+                return
                 
             selected.append(best_sensor)
             uncovered -= set(sensors[best_sensor])
             
         config = self.prune(num_zones, sensors, selected)
-        return [config] if config else []
+        if config:
+            self.current_pool.append(config)
+        return
 
 
 class RandomPruning(Greedy):
-    def __init__(self, iterations: int = 1000):
+    def __init__(self, iterations: int = 1_000_000):
         self.iterations = iterations
 
     def _get_random_configuration(self, num_zones: int, sensors: dict) -> list:
@@ -65,16 +68,20 @@ class RandomPruning(Greedy):
             
         return self.prune(num_zones, sensors, selected)
 
-    def solve(self, parsed_data: dict) -> list[list[int]]:
+    def solve(self, parsed_data: dict) -> None:
         num_zones = parsed_data["num_zones"]
         sensors = parsed_data["sensors"]
         
+        self.current_pool = []
         unique_configs = set()
         for _ in range(self.iterations):
             config = self._get_random_configuration(num_zones, sensors)
             if config:
-                unique_configs.add(tuple(config))
-        return [list(c) for c in unique_configs]
+                t_cfg = tuple(config)
+                if t_cfg not in unique_configs:
+                    unique_configs.add(t_cfg)
+                    self.current_pool.append(config)
+        return
         
 if __name__ == "__main__":
     import sys

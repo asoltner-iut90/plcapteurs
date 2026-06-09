@@ -5,7 +5,7 @@ from scipy.optimize import linprog
 from heuristic import Heuristic
 
 class ColumnGeneration(Heuristic):
-    def __init__(self, max_iter: int = 1500, n_initial: int = 30000, ga_pop_size: int = 50, ga_generations: int = 40):
+    def __init__(self, max_iter: int = 10000, n_initial: int = 30000, ga_pop_size: int = 50, ga_generations: int = 40):
         self.max_iter = max_iter
         self.n_initial = n_initial
         self.ga_pop_size = ga_pop_size
@@ -125,7 +125,7 @@ class ColumnGeneration(Heuristic):
 
         return [list(c) for c in attractive_columns.keys()]
 
-    def solve(self, parsed_data: dict) -> list[list[int]]:
+    def solve(self, parsed_data: dict) -> None:
         num_zones = parsed_data["num_zones"]
         sensors = parsed_data["sensors"]
         lifetimes = parsed_data["lifetimes"]
@@ -133,26 +133,26 @@ class ColumnGeneration(Heuristic):
         all_sensors = list(sensors.keys())
         sensor_sets = self._build_sets(sensors)
 
-        pool = set()
-        configs = []
+        self.current_pool = []
+        pool_set = set()
 
         for _ in range(self.n_initial):
             cfg = self._random_greedy(num_zones, sensor_sets, all_sensors)
             if cfg:
                 t_cfg = tuple(cfg)
-                if t_cfg not in pool:
-                    pool.add(t_cfg)
-                    configs.append(cfg)
+                if t_cfg not in pool_set:
+                    pool_set.add(t_cfg)
+                    self.current_pool.append(cfg)
 
         b = np.array([lifetimes[s - 1] for s in range(1, num_sensors + 1)])
         stall_count = 0
 
         for iteration in range(self.max_iter):
-            n = len(configs)
+            n = len(self.current_pool)
             c = -np.ones(n)
 
             row_indices, col_indices, data = [], [], []
-            for j, cfg in enumerate(configs):
+            for j, cfg in enumerate(self.current_pool):
                 for s in cfg:
                     row_indices.append(s - 1)
                     col_indices.append(j)
@@ -171,9 +171,9 @@ class ColumnGeneration(Heuristic):
             added = False
             for cfg in new_columns:
                 t_cfg = tuple(cfg)
-                if t_cfg not in pool:
-                    pool.add(t_cfg)
-                    configs.append(cfg)
+                if t_cfg not in pool_set:
+                    pool_set.add(t_cfg)
+                    self.current_pool.append(cfg)
                     added = True
 
             if added:
@@ -184,7 +184,7 @@ class ColumnGeneration(Heuristic):
             if stall_count >= 3:
                 break
 
-        return configs
+        return
 
 if __name__ == "__main__":
     import sys

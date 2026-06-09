@@ -7,10 +7,16 @@ import subprocess
 import datetime
 
 
+class TimeoutException(Exception):
+    pass
+
+
 class Tester:
-    def __init__(self, heuristic: Heuristic, verbose=False):
+    def __init__(self, heuristic: Heuristic ,logs=True ,verbose=False, timeout=None):
         self.verbose = verbose
         self.heuristic = heuristic
+        self.logs = logs
+        self.timeout = timeout
 
         # Configuration de l'enregistrement des logs
         self.log_dir = "logs"
@@ -64,13 +70,15 @@ class Tester:
             return "N/A (Git non initialisé ou non installé)"
 
     def _log(self, message: str):
-        with open(self.log_filename, "a", encoding="utf-8") as f:
-            f.write(message + "\n")
+        if self.logs:
+            with open(self.log_filename, "a", encoding="utf-8") as f:
+                f.write(message + "\n")
 
     def _run_solver(self, file_path: str) -> dict:
         data = parse_data.parse_sensor_data(file_path)
 
-        configurations_pool = self.heuristic.solve(data)
+        self.heuristic.solve(data)
+        configurations_pool = self.heuristic.get_pool()
         best_config = min(configurations_pool, key=len) if configurations_pool else []
 
         results = solver.solve_sensor_scheduling(data["lifetimes"], data["sensors"], configurations_pool)
@@ -105,8 +113,23 @@ class Tester:
         self._log(msg_start)
 
         start_time = time.time()
+        # Initialisation du pool sur l'heuristique
+        self.heuristic.current_pool = []
         try:
-            res = self._run_solver(file_path)
+            if self.timeout and self.timeout > 0:
+                import signal
+                def handler(signum, frame):
+                    raise TimeoutException("Limite de temps dépassée (Timeout)")
+                signal.signal(signal.SIGALRM, handler)
+                signal.alarm(self.timeout)
+
+            try:
+                res = self._run_solver(file_path)
+            finally:
+                if self.timeout and self.timeout > 0:
+                    import signal
+                    signal.alarm(0)
+
             elapsed = time.time() - start_time
             obtained = res["objective"]
 
@@ -142,11 +165,56 @@ class Tester:
             self._log(schedule_text)
             self._log("") # Ligne vide pour aérer
 
+            return res["status"], elapsed, obtained, res["schedule"]
+
         except Exception as e:
+            elapsed = time.time() - start_time
+            pool = getattr(self.heuristic, "get_pool", lambda: [])()
+            if pool:
+                try:
+                    print(f"Interruption détectée ({e}). Résolution partielle avec {len(pool)} configurations...")
+                    data = parse_data.parse_sensor_data(file_path)
+                    results = solver.solve_sensor_scheduling(data["lifetimes"], data["sensors"], pool)
+                    obtained = results["objective"]
+                    
+                    expected, diff_str = self._get_expected_and_diff(obtained, out_file)
+                    expected_val = expected if expected is not None else "N/A"
+                    
+                    obtained_str = f"{obtained:.3f}" if isinstance(obtained, (int, float)) else str(obtained)
+                    expected_str = f"{expected_val:.3f}" if isinstance(expected_val, (int, float)) else str(expected_val)
+                    
+                    msg_result = f"Terminé (Partiel - Interrompu) en {elapsed:.2f}s | Obtenu: {obtained_str} (Attendu: {expected_str}) | Différence: {diff_str}"
+                    print(msg_result)
+                    self._log(msg_result)
+                    
+                    schedule_lines = ["Ordonnancement choisi par le solveur (Partiel) :"]
+                    has_active_config = False
+                    for config, duration in results["schedule"].items():
+                        if duration and duration > 1e-5:
+                            schedule_lines.append(f"  - Capteurs {list(config)} activés pendant {duration:.2f} unités de temps")
+                            has_active_config = True
+                    if not has_active_config:
+                        schedule_lines.append("  - Aucune configuration active trouvée.")
+                    
+                    schedule_text = "\n".join(schedule_lines)
+                    if self.verbose:
+                        print(schedule_text)
+                        print()
+                    self._log(schedule_text)
+                    self._log("")
+                    
+                    return "Timeout/Partial", elapsed, obtained, results["schedule"]
+                except Exception as solve_err:
+                    print(f"Erreur lors de la résolution partielle : {solve_err}")
+            
             err_msg = f"Erreur lors de l'exécution de {file_path} : {e}"
             print(err_msg + "\n")
             self._log(err_msg + "\n")
+            return "Error", elapsed, None, None
 
     def execute_all_tests(self):
+        results = []
         for i in range(1, 6):
-            self.execute_test(i)
+            res = self.execute_test(i)
+            results.append(res)
+        return results

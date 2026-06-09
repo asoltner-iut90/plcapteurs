@@ -3,7 +3,7 @@ from heuristic import Heuristic
 
 
 class DualWeightsHeuristic(Heuristic):
-    def __init__(self, iterations=5000, beta=1.2):
+    def __init__(self, iterations=100_000, beta=1.2):
         self.iterations = iterations
         self.beta = beta
 
@@ -20,13 +20,14 @@ class DualWeightsHeuristic(Heuristic):
                 pruned.append(s_id)
         return sorted(pruned)
 
-    def solve(self, parsed_data: dict) -> list[list[int]]:
+    def solve(self, parsed_data: dict) -> None:
         num_zones = parsed_data["num_zones"]
         sensors = parsed_data["sensors"]
         lifetimes = parsed_data["lifetimes"]
 
         sensor_sets = {s: set(z) for s, z in sensors.items()}
-        pool = set()
+        self.current_pool = []
+        pool_set = set()
 
         # Initialize sensor weights inversely proportional to their lifetime
         weights = {}
@@ -68,7 +69,10 @@ class DualWeightsHeuristic(Heuristic):
             if not uncovered:
                 # Prune expensive sensors first
                 final_config = self._prune(num_zones, sensor_sets, list(selected), weights)
-                pool.add(tuple(final_config))
+                t_cfg = tuple(final_config)
+                if t_cfg not in pool_set:
+                    pool_set.add(t_cfg)
+                    self.current_pool.append(final_config)
 
                 # Multiplicative weight update (penalize used sensors)
                 for s in final_config:
@@ -80,7 +84,7 @@ class DualWeightsHeuristic(Heuristic):
                     for s in weights:
                         weights[s] /= 1e10
 
-        return [list(c) for c in pool]
+        return
 
 
 if __name__ == "__main__":
@@ -88,4 +92,4 @@ if __name__ == "__main__":
     import os
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
     from tester import Tester
-    Tester(DualWeightsHeuristic(iterations=10000, beta=1.2)).execute_all_tests()
+    Tester(DualWeightsHeuristic(iterations=20000, beta=1.2)).execute_all_tests()

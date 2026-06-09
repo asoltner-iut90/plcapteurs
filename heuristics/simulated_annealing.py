@@ -91,7 +91,8 @@ class SimulatedAnnealing(Heuristic):
             return []
 
         current_cost = self._calculate_cost(current_config, lifetimes)
-        pool = {tuple(current_config)}
+        self.current_pool = [current_config]
+        pool_set = {tuple(current_config)}
         temp = self.initial_temp
 
         for _ in range(self.iterations):
@@ -105,13 +106,16 @@ class SimulatedAnnealing(Heuristic):
             if delta <= 0 or random.random() < math.exp(-delta / temp):
                 current_config = neighbor
                 current_cost = neighbor_cost
-                pool.add(tuple(current_config))
+                t_cfg = tuple(current_config)
+                if t_cfg not in pool_set:
+                    pool_set.add(t_cfg)
+                    self.current_pool.append(current_config)
 
             temp *= self.cooling_rate
             if temp < 1e-4:
                 temp = self.initial_temp
 
-        return [list(c) for c in pool]
+        return self.current_pool
 
 
 if __name__ == "__main__":

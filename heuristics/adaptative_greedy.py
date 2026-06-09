@@ -13,7 +13,8 @@ class AdaptiveGreedy(Heuristic):
         lifetimes = parsed_data["lifetimes"]
 
         sensor_sets = {i: set(z) for i, z in sensors.items()}
-        pool = set()
+        self.current_pool = []
+        pool_set = set()
         usage_counts = {i: 0 for i in range(1, num_sensors + 1)}
 
         for _ in range(self.iterations):
@@ -57,13 +58,15 @@ class AdaptiveGreedy(Heuristic):
                     chromosome[idx] = 1
 
             config_tuple = tuple(chromosome)
-            if config_tuple not in pool:
-                pool.add(config_tuple)
+            if config_tuple not in pool_set:
+                pool_set.add(config_tuple)
+                config_list = [i + 1 for i, val in enumerate(config_tuple) if val == 1]
+                self.current_pool.append(config_list)
                 for i, active in enumerate(config_tuple):
                     if active:
                         usage_counts[i + 1] += 1
 
-        return [[i + 1 for i, val in enumerate(c) if val == 1] for c in pool]
+        return self.current_pool
 
 if __name__ == "__main__":
     import sys

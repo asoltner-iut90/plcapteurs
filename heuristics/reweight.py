@@ -14,12 +14,13 @@ class ReweightHeuristic(Heuristic):
         lifetimes = parsed_data["lifetimes"]
 
         weights = [1000.0 / max(1.0, float(lifetimes[i])) for i in range(num_sensors)]
-        global_pool = set()
+        self.current_pool = []
+        pool_set = set()
 
         max_attempts = self.pool_size * 2
         attempts = 0
 
-        while len(global_pool) < self.pool_size and attempts < max_attempts:
+        while len(pool_set) < self.pool_size and attempts < max_attempts:
             attempts += 1
             uncovered = set(range(1, num_zones + 1))
             config = []
@@ -60,9 +61,12 @@ class ReweightHeuristic(Heuristic):
             for s in active_set:
                 weights[s - 1] *= self.penalty_factor
 
-            global_pool.add(tuple(sorted(active_set)))
+            cfg_tuple = tuple(sorted(active_set))
+            if cfg_tuple not in pool_set:
+                pool_set.add(cfg_tuple)
+                self.current_pool.append(list(cfg_tuple))
 
-        return [list(c) for c in global_pool]
+        return self.current_pool
 
 
 if __name__ == "__main__":
